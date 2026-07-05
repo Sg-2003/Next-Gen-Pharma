@@ -115,3 +115,66 @@ To perform static analysis using Oxlint:
 ```bash
 npm run lint
 ```
+
+---
+
+## 🐳 Docker & Amazon ECS Deployment
+
+Next Gen Pharma is containerized using Docker and is configured for cloud deployment to services such as **Amazon Elastic Container Service (ECS)**.
+
+### 1. Local Docker Setup
+
+#### Build the Docker Image
+To build the Docker image locally from the project root:
+```bash
+docker build -t next-gen-pharma .
+```
+
+#### Run the Docker Container
+To start the container and map it to port `5173` on your host:
+```bash
+docker run -p 5173:5173 next-gen-pharma
+```
+Open your browser and navigate to `http://localhost:5173` to view the running container application.
+
+---
+
+### 2. Deploying to Amazon ECS
+
+The application is deployed on Amazon ECS and is accessible at:
+🔗 **Production URL:** [http://13.207.151.163:5173/](http://13.207.151.163:5173/)
+
+Here is the standard deployment pipeline to release updates to AWS ECS:
+
+#### Step A: Publish Docker Image to Amazon ECR (Elastic Container Registry)
+
+1. **Authenticate Docker with Amazon ECR**:
+   ```bash
+   aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.<region>.amazonaws.com
+   ```
+
+2. **Create the Repository** (if not already existing):
+   ```bash
+   aws ecr create-repository --repository-name next-gen-pharma
+   ```
+
+3. **Tag the Local Image**:
+   ```bash
+   docker tag next-gen-pharma:latest <aws_account_id>.dkr.ecr.<region>.amazonaws.com/next-gen-pharma:latest
+   ```
+
+4. **Push the Image to ECR**:
+   ```bash
+   docker push <aws_account_id>.dkr.ecr.<region>.amazonaws.com/next-gen-pharma:latest
+   ```
+
+#### Step B: Run Task on Amazon ECS
+
+1. **ECS Cluster**: Run the tasks within an ECS Cluster (e.g., `next-gen-pharma-cluster`).
+2. **Task Definition**:
+   - **Launch Type Compatibility**: Fargate (serverless) or EC2.
+   - **Image**: Set to `<aws_account_id>.dkr.ecr.<region>.amazonaws.com/next-gen-pharma:latest`.
+   - **Port Mappings**: Map Container Port `5173` to Host Port `5173` (or map through an Application Load Balancer to port `80`/`443`).
+3. **ECS Service**:
+   - Create a service to manage task lifecycle and scaling.
+   - Configure Security Groups to allow inbound traffic on port `5173`.
